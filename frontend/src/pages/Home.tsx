@@ -68,12 +68,12 @@ function Home() {
 
           {!isLoadingLinks && !error
             ? links.map((link) => {
-                const shortUrl = `${window.location.origin}/${link.id}`
+                const shortUrl = `${window.location.origin}/${link.slug}`
 
                 return (
                   <Card key={link.id}>
                     <CardHeader>
-                      <CardTitle className='text-sm'>{link.id}</CardTitle>
+                      <CardTitle className='text-sm'>{link.slug}</CardTitle>
                       <CardDescription className='break-all'>{link.url}</CardDescription>
                     </CardHeader>
                     <CardContent>

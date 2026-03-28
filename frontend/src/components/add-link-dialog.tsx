@@ -22,6 +22,7 @@ type AddLinkDialogProps = {
 export const AddLinkDialog = ({ trigger, open, onOpenChange, onCreated }: AddLinkDialogProps) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const [inputUrl, setInputUrl] = useState("");
+  const [customSlug, setCustomSlug] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createdLink, setCreatedLink] = useState<UserLink | null>(null);
@@ -34,11 +35,12 @@ export const AddLinkDialog = ({ trigger, open, onOpenChange, onCreated }: AddLin
       return "";
     }
 
-    return `${window.location.origin}/${createdLink.id}`;
+    return `${window.location.origin}/${createdLink.slug}`;
   }, [createdLink]);
 
   const resetState = () => {
     setInputUrl("");
+    setCustomSlug("");
     setError(null);
     setIsSubmitting(false);
     setCreatedLink(null);
@@ -61,7 +63,7 @@ export const AddLinkDialog = ({ trigger, open, onOpenChange, onCreated }: AddLin
     setIsSubmitting(true);
 
     try {
-      const response = await createLinkRequest(inputUrl);
+      const response = await createLinkRequest(inputUrl, customSlug);
       setCreatedLink(response.link);
       onCreated?.(response.link);
     } catch (submitError) {
@@ -100,6 +102,12 @@ export const AddLinkDialog = ({ trigger, open, onOpenChange, onCreated }: AddLin
                   {isSubmitting ? "Creating..." : "Create"}
                 </Button>
               </div>
+              <Input
+                type="text"
+                placeholder="Optional custom slug (e.g. my-link)"
+                value={customSlug}
+                onChange={(event) => setCustomSlug(event.target.value)}
+              />
               {error ? <p className="text-sm text-destructive">{error}</p> : null}
             </div>
           </>

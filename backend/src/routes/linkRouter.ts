@@ -15,12 +15,48 @@ const isValidUrl = (value: string): boolean => {
 };
 
 const getRandomCode = () => {
-  var random = Math.floor(Math.random() * 999999) + '';
-  var md5crypto = crypto.createHash('md5').update(random).digest("hex");
-  //generates 5 letter / digit code
-  var short_code = md5crypto.substring(0, 5);
-  return short_code;
+	const random = Math.floor(Math.random() * 999999) + '';
+	const md5crypto = crypto.createHash('md5').update(random).digest("hex");
+	return md5crypto.substring(0, 7);
 }
+
+const normalizeSlug = (value: string) => value.trim().toLowerCase();
+
+const isValidSlug = (value: string) => /^[a-z0-9-]+$/.test(value);
+
+const generateUniqueSlug = async (): Promise<string> => {
+	let slug = getRandomCode();
+	let existing = await prisma.links.findFirst({ where: { slug } });
+
+	while (existing) {
+		slug = getRandomCode();
+		existing = await prisma.links.findFirst({ where: { slug } });
+	}
+
+	return slug;
+};
+
+linkRouter.get('/resolve/:slug', async (req, res) => {
+	try {
+		const rawSlug = req.params.slug;
+		if (!rawSlug) {
+			res.status(400).json({ message: "slug is required" });
+			return;
+		}
+
+		const slug = normalizeSlug(rawSlug);
+		const link = await prisma.links.findFirst({ where: { slug } });
+
+		if (!link) {
+			res.status(404).json({ message: "Link not found" });
+			return;
+		}
+
+		res.json({ slug: link.slug, url: link.url });
+	} catch {
+		res.status(500).json({ message: "Failed to resolve link" });
+	}
+})
 
 linkRouter.get('/', authMiddleware, async (req, res) => {
 	try {
@@ -30,10 +66,24 @@ linkRouter.get('/', authMiddleware, async (req, res) => {
 			return;
 		}
 
-		const links = await prisma.links.findMany({
+		const rawLinks = await prisma.links.findMany({
 			where: { userID: userId },
 			orderBy: { id: "desc" },
 		});
+
+		const links = await Promise.all(
+			rawLinks.map(async (link) => {
+				if (link.slug) {
+					return link;
+				}
+
+				const generatedSlug = await generateUniqueSlug();
+				return prisma.links.update({
+					where: { id: link.id },
+					data: { slug: generatedSlug },
+				});
+			})
+		);
 
 		res.json({ links });
 	} catch {
@@ -49,7 +99,7 @@ linkRouter.post('/create', authMiddleware, async (req, res) => {
 			return;
 		}
 
-		const { title, url, slug } = req.body as { title?: string; url?: string, slug?: string };
+		const { title, url, slug } = req.body as { title?: string; url?: string; slug?: string };
 
 		if (!title || !url) {
 			res.status(400).json({ message: "title and url are required" });
@@ -60,15 +110,27 @@ linkRouter.post('/create', authMiddleware, async (req, res) => {
 			res.status(400).json({ message: "Invalid url" });
 			return;
 		}
-		let random_slug;
-		if(!slug) {
-			random_slug = getRandomCode();
+		let finalSlug: string;
+		if (slug && slug.trim()) {
+			finalSlug = normalizeSlug(slug);
+			if (!isValidSlug(finalSlug)) {
+				res.status(400).json({ message: "Invalid slug. Use lowercase letters, numbers, and hyphens only" });
+				return;
+			}
+
+			const existingSlug = await prisma.links.findFirst({ where: { slug: finalSlug } });
+			if (existingSlug) {
+				res.status(409).json({ message: "Slug already exists" });
+				return;
+			}
+		} else {
+			finalSlug = await generateUniqueSlug();
 		}
 
 		const link = await prisma.links.create({
 			data: {
 				title: title.trim(),
-				slug: slug ? slug : random_slug,
+				slug: finalSlug,
 				url: url.trim(),
 				userID: userId,
 			},
@@ -88,12 +150,14 @@ linkRouter.post('/update', authMiddleware, async (req, res) => {
 			return;
 		}
 
-		const { id, title, url } = req.body as { id?: string; title?: string; url?: string };
+		const { slug, title, url } = req.body as { slug?: string; title?: string; url?: string };
 
-		if (!id) {
-			res.status(400).json({ message: "id is required" });
+		if (!slug) {
+			res.status(400).json({ message: "slug is required" });
 			return;
 		}
+
+		const normalizedSlug = normalizeSlug(slug);
 
 		const data: { title?: string; url?: string } = {};
 		if (typeof title === "string" && title.trim()) {
@@ -113,7 +177,7 @@ linkRouter.post('/update', authMiddleware, async (req, res) => {
 		}
 
 		const updated = await prisma.links.updateMany({
-			where: { id, userID: userId },
+			where: { slug: normalizedSlug, userID: userId },
 			data,
 		});
 
@@ -122,7 +186,7 @@ linkRouter.post('/update', authMiddleware, async (req, res) => {
 			return;
 		}
 
-		const link = await prisma.links.findUnique({ where: { id } });
+		const link = await prisma.links.findFirst({ where: { slug: normalizedSlug, userID: userId } });
 		res.json({ message: "Link updated", link });
 	} catch {
 		res.status(500).json({ message: "Failed to update link" });
@@ -137,14 +201,16 @@ linkRouter.delete('/', authMiddleware, async (req, res) => {
 			return;
 		}
 
-		const id = (req.body as { id?: string })?.id || (req.query.id as string | undefined);
-		if (!id) {
-			res.status(400).json({ message: "id is required" });
+		const slug = ((req.body as { slug?: string })?.slug || (req.query.slug as string | undefined));
+		if (!slug) {
+			res.status(400).json({ message: "slug is required" });
 			return;
 		}
 
+		const normalizedSlug = normalizeSlug(slug);
+
 		const deleted = await prisma.links.deleteMany({
-			where: { id, userID: userId },
+			where: { slug: normalizedSlug, userID: userId },
 		});
 
 		if (deleted.count === 0) {

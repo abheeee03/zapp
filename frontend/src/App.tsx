@@ -23,7 +23,7 @@ function App() {
     <Routes>
       <Route path='/' element={<Landing/>}/>
       <Route path='/home' element={<ProtectedHome/>}/>
-      <Route path='/:id' element={<LinkPage/>}/>
+      <Route path='/:slug' element={<LinkPage/>}/>
     </Routes>
   )
 }

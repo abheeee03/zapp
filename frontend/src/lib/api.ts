@@ -8,6 +8,7 @@ export type AuthUser = {
 export type UserLink = {
   id: string;
   title: string;
+  slug: string;
   url: string;
 };
 
@@ -28,6 +29,11 @@ type CreateLinkResponse = {
 
 type GetLinksResponse = {
   links: UserLink[];
+};
+
+type ResolveSlugResponse = {
+  slug: string;
+  url: string;
 };
 
 export const TOKEN_STORAGE_KEY = "zap_token";
@@ -74,17 +80,24 @@ export const getCurrentUserRequest = async (): Promise<CurrentUserResponse> => {
   return response.data;
 };
 
-export const createLinkRequest = async (url: string): Promise<CreateLinkResponse> => {
+export const createLinkRequest = async (url: string, slug?: string): Promise<CreateLinkResponse> => {
   const cleanedUrl = url.trim();
+  const cleanedSlug = slug?.trim();
   const response = await api.post<CreateLinkResponse>("/link/create", {
     title: cleanedUrl,
     url: cleanedUrl,
+    slug: cleanedSlug || undefined,
   });
   return response.data;
 };
 
 export const getLinksRequest = async (): Promise<GetLinksResponse> => {
   const response = await api.get<GetLinksResponse>("/link");
+  return response.data;
+};
+
+export const resolveShortLinkRequest = async (slug: string): Promise<ResolveSlugResponse> => {
+  const response = await api.get<ResolveSlugResponse>(`/link/resolve/${slug}`);
   return response.data;
 };
 
