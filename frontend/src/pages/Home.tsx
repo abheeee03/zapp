@@ -3,10 +3,10 @@ import { AddLinkDialog } from '@/components/add-link-dialog'
 import { EditLinkDialog } from '@/components/edit-link-dialog'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/lib/auth-context'
-import { getApiErrorMessage, getLinksRequest, type UserLink } from '@/lib/api'
+import { deleteLinkRequest, getApiErrorMessage, getLinksRequest, type UserLink } from '@/lib/api'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import Logo from '@/components/logo'
+import { Trash2 } from 'lucide-react'
 
 function Home() {
   const { user, logout } = useAuth()
@@ -14,6 +14,7 @@ function Home() {
   const [links, setLinks] = useState<UserLink[]>([])
   const [isLoadingLinks, setIsLoadingLinks] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [deletingSlug, setDeletingSlug] = useState<string | null>(null)
 
   useEffect(() => {
     const loadLinks = async () => {
@@ -43,6 +44,7 @@ function Home() {
             <AddLinkDialog
               trigger={<Button>Add Link</Button>}
               onCreated={(newLink) => {
+                setError(null)
                 setLinks((prev) => [newLink, ...prev])
               }}
             />
@@ -76,17 +78,46 @@ function Home() {
                   <Card key={link.id}>
                     <CardHeader>
                       <CardAction>
-                        <EditLinkDialog
-                          link={link}
-                          trigger={<Button variant='outline' size='sm'>Edit URL</Button>}
-                          onUpdated={(updatedLink) => {
-                            setLinks((prev) =>
-                              prev.map((existingLink) =>
-                                existingLink.id === updatedLink.id ? updatedLink : existingLink
+                        <div className='flex items-center gap-2'>
+                          <EditLinkDialog
+                            link={link}
+                            trigger={<Button variant='outline' size='sm'>Edit URL</Button>}
+                            onUpdated={(updatedLink) => {
+                              setError(null)
+                              setLinks((prev) =>
+                                prev.map((existingLink) =>
+                                  existingLink.id === updatedLink.id ? updatedLink : existingLink
+                                )
                               )
-                            )
-                          }}
-                        />
+                            }}
+                          />
+                          <Button
+                            variant='outline'
+                            size='icon-sm'
+                            disabled={deletingSlug === link.slug}
+                            onClick={async () => {
+                              const shouldDelete = window.confirm(`Delete /${link.slug}?`)
+                              if (!shouldDelete) {
+                                return
+                              }
+
+                              setError(null)
+                              setDeletingSlug(link.slug)
+
+                              try {
+                                await deleteLinkRequest(link.slug)
+                                setLinks((prev) => prev.filter((existingLink) => existingLink.id !== link.id))
+                              } catch (deleteError) {
+                                setError(getApiErrorMessage(deleteError))
+                              } finally {
+                                setDeletingSlug(null)
+                              }
+                            }}
+                          >
+                            <Trash2 className='size-4' />
+                            <span className='sr-only'>Delete link</span>
+                          </Button>
+                        </div>
                       </CardAction>
                       <CardTitle className='text-sm'>{link.slug}</CardTitle>
                       <CardDescription className='break-all'>{link.url}</CardDescription>

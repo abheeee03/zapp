@@ -36,6 +36,10 @@ type UpdateLinkResponse = {
   link: UserLink;
 };
 
+type DeleteLinkResponse = {
+  message: string;
+};
+
 type ResolveSlugResponse = {
   slug: string;
   url: string;
@@ -105,6 +109,13 @@ export const updateLinkRequest = async (slug: string, url: string): Promise<Upda
   const response = await api.post<UpdateLinkResponse>("/link/update", {
     slug: slug.trim().toLowerCase(),
     url: url.trim(),
+  });
+  return response.data;
+};
+
+export const deleteLinkRequest = async (slug: string): Promise<DeleteLinkResponse> => {
+  const response = await api.delete<DeleteLinkResponse>("/link", {
+    data: { slug: slug.trim().toLowerCase() },
   });
   return response.data;
 };
