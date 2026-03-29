@@ -31,6 +31,11 @@ type GetLinksResponse = {
   links: UserLink[];
 };
 
+type UpdateLinkResponse = {
+  message: string;
+  link: UserLink;
+};
+
 type ResolveSlugResponse = {
   slug: string;
   url: string;
@@ -93,6 +98,14 @@ export const createLinkRequest = async (url: string, slug?: string): Promise<Cre
 
 export const getLinksRequest = async (): Promise<GetLinksResponse> => {
   const response = await api.get<GetLinksResponse>("/link");
+  return response.data;
+};
+
+export const updateLinkRequest = async (slug: string, url: string): Promise<UpdateLinkResponse> => {
+  const response = await api.post<UpdateLinkResponse>("/link/update", {
+    slug: slug.trim().toLowerCase(),
+    url: url.trim(),
+  });
   return response.data;
 };
 

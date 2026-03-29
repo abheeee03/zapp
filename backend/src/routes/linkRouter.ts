@@ -24,6 +24,24 @@ const normalizeSlug = (value: string) => value.trim().toLowerCase();
 
 const isValidSlug = (value: string) => /^[a-z0-9-]+$/.test(value);
 
+const isPrismaUniqueSlugError = (error: unknown): boolean => {
+	if (!error || typeof error !== "object" || !("code" in error)) {
+		return false;
+	}
+
+	const code = (error as { code?: string }).code;
+	if (code !== "P2002") {
+		return false;
+	}
+
+	const target = (error as { meta?: { target?: unknown } }).meta?.target;
+	if (Array.isArray(target)) {
+		return target.includes("slug");
+	}
+
+	return true;
+};
+
 const generateUniqueSlug = async (): Promise<string> => {
 	let slug = getRandomCode();
 	let existing = await prisma.links.findFirst({ where: { slug } });
@@ -137,7 +155,12 @@ linkRouter.post('/create', authMiddleware, async (req, res) => {
 		});
 
 		res.status(201).json({ message: "Link created", link });
-	} catch {
+	} catch (error) {
+		if (isPrismaUniqueSlugError(error)) {
+			res.status(409).json({ message: "Slug already exists" });
+			return;
+		}
+
 		res.status(500).json({ message: "Failed to create link" });
 	}
 })
@@ -158,6 +181,10 @@ linkRouter.post('/update', authMiddleware, async (req, res) => {
 		}
 
 		const normalizedSlug = normalizeSlug(slug);
+		if (!isValidSlug(normalizedSlug)) {
+			res.status(400).json({ message: "Invalid slug" });
+			return;
+		}
 
 		const data: { title?: string; url?: string } = {};
 		if (typeof title === "string" && title.trim()) {
@@ -208,6 +235,10 @@ linkRouter.delete('/', authMiddleware, async (req, res) => {
 		}
 
 		const normalizedSlug = normalizeSlug(slug);
+		if (!isValidSlug(normalizedSlug)) {
+			res.status(400).json({ message: "Invalid slug" });
+			return;
+		}
 
 		const deleted = await prisma.links.deleteMany({
 			where: { slug: normalizedSlug, userID: userId },

@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { AddLinkDialog } from '@/components/add-link-dialog'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { EditLinkDialog } from '@/components/edit-link-dialog'
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/lib/auth-context'
 import { getApiErrorMessage, getLinksRequest, type UserLink } from '@/lib/api'
 import { useEffect, useState } from 'react'
@@ -73,6 +74,19 @@ function Home() {
                 return (
                   <Card key={link.id}>
                     <CardHeader>
+                      <CardAction>
+                        <EditLinkDialog
+                          link={link}
+                          trigger={<Button variant='outline' size='sm'>Edit URL</Button>}
+                          onUpdated={(updatedLink) => {
+                            setLinks((prev) =>
+                              prev.map((existingLink) =>
+                                existingLink.id === updatedLink.id ? updatedLink : existingLink
+                              )
+                            )
+                          }}
+                        />
+                      </CardAction>
                       <CardTitle className='text-sm'>{link.slug}</CardTitle>
                       <CardDescription className='break-all'>{link.url}</CardDescription>
                     </CardHeader>
