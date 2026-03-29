@@ -81,11 +81,18 @@ export const AddLinkDialog = ({ trigger, open, onOpenChange, onCreated }: AddLin
         {!createdLink ? (
           <>
             <DialogHeader>
-              <DialogTitle>Add a new link</DialogTitle>
+              <DialogTitle className="font-semibold">Add a new link</DialogTitle>
               <DialogDescription>Paste your URL and create a short link instantly.</DialogDescription>
             </DialogHeader>
 
             <div className="space-y-3">
+              <Input
+                type="text"
+                placeholder="Custom Name"
+                value={customSlug}
+                onChange={(event) => setCustomSlug(event.target.value)}
+              />
+              {error ? <p className="text-sm text-destructive">{error}</p> : null}
               <div className="flex gap-2">
                 <Input
                   type="url"
@@ -102,13 +109,6 @@ export const AddLinkDialog = ({ trigger, open, onOpenChange, onCreated }: AddLin
                   {isSubmitting ? "Creating..." : "Create"}
                 </Button>
               </div>
-              <Input
-                type="text"
-                placeholder="Optional custom slug (e.g. my-link)"
-                value={customSlug}
-                onChange={(event) => setCustomSlug(event.target.value)}
-              />
-              {error ? <p className="text-sm text-destructive">{error}</p> : null}
             </div>
           </>
         ) : (

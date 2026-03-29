@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth-context'
 import { getApiErrorMessage, getLinksRequest, type UserLink } from '@/lib/api'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Logo from '@/components/logo'
 
 function Home() {
   const { user, logout } = useAuth()
