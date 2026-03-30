@@ -1,20 +1,20 @@
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AddLinkDialog } from '@/components/add-link-dialog'
 import { EditLinkDialog } from '@/components/edit-link-dialog'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/lib/auth-context'
-import { deleteLinkRequest, getApiErrorMessage, getLinksRequest, type UserLink } from '@/lib/api'
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Trash2 } from 'lucide-react'
+import { deleteLinkRequest, getApiErrorMessage, getLinksRequest } from '@/lib/api'
 
 function Home() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const [links, setLinks] = useState<UserLink[]>([])
+  const [links, setLinks] = useState([])
   const [isLoadingLinks, setIsLoadingLinks] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [deletingSlug, setDeletingSlug] = useState<string | null>(null)
+  const [error, setError] = useState(null)
+  const [deletingSlug, setDeletingSlug] = useState(null)
 
   useEffect(() => {
     const loadLinks = async () => {
@@ -33,8 +33,7 @@ function Home() {
 
   return (
     <div className='min-h-screen w-full p-6'>
-      <div className="mx-auto max-w-3xl">
-
+      <div className='mx-auto max-w-3xl'>
         <div className='flex w-full items-center justify-between'>
           <div>
             <h1 className='text-2xl font-semibold'>Home</h1>
@@ -60,7 +59,7 @@ function Home() {
           </div>
         </div>
 
-      <div className="mt-10 flex flex-col gap-4">
+        <div className='mt-10 flex flex-col gap-4'>
           <h1 className='text-xl font-semibold'>Your Links</h1>
 
           {isLoadingLinks ? <p className='text-sm text-muted-foreground'>Loading links...</p> : null}
@@ -86,8 +85,8 @@ function Home() {
                               setError(null)
                               setLinks((prev) =>
                                 prev.map((existingLink) =>
-                                  existingLink.id === updatedLink.id ? updatedLink : existingLink
-                                )
+                                  existingLink.id === updatedLink.id ? updatedLink : existingLink,
+                                ),
                               )
                             }}
                           />
@@ -136,7 +135,7 @@ function Home() {
                 )
               })
             : null}
-      </div>
+        </div>
       </div>
     </div>
   )

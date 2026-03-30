@@ -21,9 +21,9 @@ function ProtectedHome() {
 function App() {
   return (
     <Routes>
-      <Route path='/' element={<Landing/>}/>
-      <Route path='/home' element={<ProtectedHome/>}/>
-      <Route path='/:slug' element={<LinkPage/>}/>
+      <Route path='/' element={<Landing />} />
+      <Route path='/home' element={<ProtectedHome />} />
+      <Route path='/:slug' element={<LinkPage />} />
     </Routes>
   )
 }
