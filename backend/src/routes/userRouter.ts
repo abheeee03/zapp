@@ -1,12 +1,29 @@
 import { Router } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { prisma } from "../lib/prisma";
+import mongoose from "mongoose";
+import { Link, User } from "../db/model";
 import { authMiddleware } from "../middleware/auth";
 
 export const userRouter = Router()
 
-const JWT_SECRET = process.env.JWT_SECRET || "";
+const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_change_me";
+
+const toLinkResponse = (link: {
+	_id: mongoose.Types.ObjectId;
+	title: string;
+	slug: string;
+	url: string;
+	createdAt?: Date;
+	updatedAt?: Date;
+}) => ({
+	id: link._id.toString(),
+	title: link.title,
+	slug: link.slug,
+	url: link.url,
+	createdAt: link.createdAt,
+	updatedAt: link.updatedAt,
+});
 
 userRouter.post('/signup', async (req, res) => {
 	try {
@@ -19,7 +36,7 @@ userRouter.post('/signup', async (req, res) => {
 
 		const normalizedEmail = email.trim().toLowerCase();
 
-		const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+		const existingUser = await User.findOne({ email: normalizedEmail }).select("_id").lean();
 		if (existingUser) {
 			res.status(409).json({ message: "User already exists" });
 			return;
@@ -27,11 +44,9 @@ userRouter.post('/signup', async (req, res) => {
 
 		const hashedPassword = await bcrypt.hash(password, 10);
 
-		const user = await prisma.user.create({
-			data: {
-				email: normalizedEmail,
-				password: hashedPassword,
-			},
+		const user = await User.create({
+			email: normalizedEmail,
+			password: hashedPassword,
 		});
 
 		const token = jwt.sign(
@@ -61,7 +76,7 @@ userRouter.post('/login', async (req, res) => {
 
 		const normalizedEmail = email.trim().toLowerCase();
 
-		const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+		const user = await User.findOne({ email: normalizedEmail });
 		if (!user) {
 			res.status(401).json({ message: "Invalid credentials" });
 			return;
@@ -97,28 +112,28 @@ userRouter.get('/', authMiddleware, async (req, res) => {
 			return;
 		}
 
-		const user = await prisma.user.findUnique({
-			where: { id: userId },
-			select: {
-				id: true,
-				email: true,
-				link: {
-					select: {
-						id: true,
-						title: true,
-						url: true,
-					},
-					orderBy: { id: "desc" },
-				},
-			},
-		});
+		if (!mongoose.isValidObjectId(userId)) {
+			res.status(401).json({ message: "Unauthorized" });
+			return;
+		}
+
+		const user = await User.findById(userId).select("_id email").lean();
 
 		if (!user) {
 			res.status(404).json({ message: "User not found" });
 			return;
 		}
 
-		res.json(user);
+		const links = await Link.find({ user: user._id })
+			.sort({ createdAt: -1 })
+			.select("_id title slug url createdAt updatedAt")
+			.lean();
+
+		res.json({
+			id: user._id.toString(),
+			email: user.email,
+			link: links.map(toLinkResponse),
+		});
 	} catch {
 		res.status(500).json({ message: "Failed to fetch user" });
 	}
