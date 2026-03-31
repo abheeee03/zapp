@@ -122,6 +122,7 @@ function Home() {
                       <CardDescription className='break-all'>{link.url}</CardDescription>
                     </CardHeader>
                     <CardContent>
+                      <p className='mb-2 text-xs text-muted-foreground'>Total clicks: {link.clicks ?? 0}</p>
                       <a
                         href={shortUrl}
                         target='_blank'

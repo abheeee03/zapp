@@ -42,6 +42,12 @@ const linkSchema = new Schema(
       required: true,
       index: true,
     },
+    clicks: {
+      type: Number,
+      required: true,
+      default: 0,
+      min: 0,
+    },
   },
   { timestamps: true }
 );

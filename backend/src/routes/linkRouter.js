@@ -50,6 +50,7 @@ const toLinkResponse = (link) => ({
   title: link.title,
   slug: link.slug,
   url: link.url,
+  clicks: link.clicks ?? 0,
   createdAt: link.createdAt,
   updatedAt: link.updatedAt,
 });
@@ -63,7 +64,13 @@ linkRouter.get("/resolve/:slug", async (req, res) => {
     }
 
     const slug = normalizeSlug(rawSlug);
-    const link = await Link.findOne({ slug }).select("_id slug url").lean();
+    const link = await Link.findOneAndUpdate(
+      { slug },
+      { $inc: { clicks: 1 } },
+      { new: true }
+    )
+      .select("_id slug url")
+      .lean();
 
     if (!link) {
       res.status(404).json({ message: "Link not found" });
@@ -91,7 +98,7 @@ linkRouter.get("/", authMiddleware, async (req, res) => {
 
     const links = await Link.find({ user: userId })
       .sort({ createdAt: -1 })
-      .select("_id title slug url createdAt updatedAt")
+      .select("_id title slug url clicks createdAt updatedAt")
       .lean();
 
     res.json({ links: links.map(toLinkResponse) });

@@ -13,6 +13,9 @@ app.use(express.json());
 
 app.use("/api/user", userRouter);
 app.use("/api/link", linkRouter);
+app.use('/status', (req, res)=>{
+  res.send("backend is up")
+})
 
 const mongoUri = process.env.MONGODB_URI;
 
